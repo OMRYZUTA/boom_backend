@@ -16,8 +16,3 @@ python-dotenv = "^1.0.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-
-[tool.poetry.scripts]
-start = "boom_backend.run_server.sh"
-hello = "boom_backend.hello:say_hello"

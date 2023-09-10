@@ -8,7 +8,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.utils import formatdate
 from typing import List, Optional
-
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from fastapi import FastAPI, Response
 from pydantic import BaseModel
@@ -18,10 +18,20 @@ from google.oauth2.service_account import Credentials
 from google.oauth2 import service_account
 import openai
 import tiktoken
+origins = [
+    "chrome-extension://bgbmjebdlkdjellaaignohicblifofje",
+]
+
 
 
 app = FastAPI()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 async def root():

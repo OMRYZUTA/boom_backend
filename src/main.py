@@ -39,6 +39,7 @@ async def root():
 
 
 class SummarizeRequest(BaseModel):
+  name: Optional[str] = None
   messages: Optional[str] = None
   mail: Optional[str] = None
   summaryType: Optional[str] = None
@@ -50,32 +51,35 @@ async def summarize(request: SummarizeRequest):
     messages = request.dict()["messages"]
     print(request.dict()) 
     summary_type = request.dict()["summaryType"]
-    content = request.dict()["messages"].replace('"', '\\"')
+    user_mail = request.model_dump()["mail"]
+    user_name = request.model_dump()["name"]
+
+    content = messages.replace('"', '\\"')
     #if num_tokens_from_string > 800:
     # content = content[-2500:]
 
     answer = ''
     if (summary_type == "meeting"):
-      answer = call_to_chatgpt(content, summary_type)
+      answer = call_to_chatgpt(user_name, content, summary_type)
       print(answer)
       #match = re.search(r'\{.*\}', answer, re.DOTALL)
       #if match:
 
       response_dict = json.loads(answer)
 
-      send_meeting_mail(request.dict()["mail"], response_dict, summary_type)
+      send_meeting_mail(user_mail, response_dict, summary_type)
     elif (summary_type == "task"):
       print("in task")
-      answer = call_to_chatgpt(content, summary_type)
+      answer = call_to_chatgpt(user_name, content, summary_type)
       response_dict = json.loads(answer)
-      send_summary_mail(request.dict()["mail"], response_dict, summary_type)
+      send_summary_mail(user_mail, response_dict, summary_type)
       print(answer)
     elif (summary_type == "suggestion"):
       print("in suggestion")
-      answer = call_to_chatgpt(content, summary_type)
+      answer = call_to_chatgpt(user_name, content, summary_type)
       print(answer)
 
-    analytics(request.dict()["mail"], summary_type, 'Success', answer)
+    analytics(user_mail, summary_type, 'Success', answer)
     return {"answer": answer, "summary_type": summary_type}
   except Exception as e:
     print(f"An error occurred: {e}")
@@ -169,7 +173,7 @@ def analytics(user, type, status, answer):
   worksheet.append_row(new_row_data)
 
 
-def call_to_chatgpt(content, task, model='gpt-3.5-turbo'):
+def call_to_chatgpt(user_name, content, task, model='gpt-3.5-turbo'):
   my_secret = os.environ['open_api_secret']
   openai.organization = "org-FlPmmJsUwf4QAxXa8sVk8xz0"
   openai.api_key = my_secret
@@ -184,7 +188,7 @@ def call_to_chatgpt(content, task, model='gpt-3.5-turbo'):
         "role":
         "user",
         "content":
-        "from the messages and their dates extract the hour of the meeting, the date of the meeting, and give a title for the summary in the dictionary subtract 3 hours, in english only for example:messages: [\"[22:20, 07/08/2023] Omry Zuta: v\n[22:20, 07/08/2023] Omry Zuta: בוא נקבע למחר בשעה שש בערב בקפה של חיים, נדבר על הוקי קרח\"]\n"
+        f"you are doing it for {user_name}, from the messages and their dates extract the hour of the meeting, the date of the meeting, and give a title for the summary in the dictionary subtract 3 hours, in english only for example:messages: [\"[22:20, 07/08/2023] Omry Zuta: v\n[22:20, 07/08/2023] Omry Zuta: בוא נקבע למחר בשעה שש בערב בקפה של חיים, נדבר על הוקי קרח\"]\n"
       }, {
         "role":
         "assistant",
@@ -194,7 +198,7 @@ def call_to_chatgpt(content, task, model='gpt-3.5-turbo'):
         "role":
         "user",
         "content":
-        f"""extract the hour of the meeting, the date, and give a title for the summary in the dictionary subtract 3 hours, in english only from the following:{str(content)}"]"""
+        f"""you are doing it for {user_name}, extract the hour of the meeting, the date, and give a title for the summary in the dictionary subtract 3 hours, in english only from the following:{str(content)}"]"""
       }],
       temperature=0,
       max_tokens=1024,
@@ -211,7 +215,7 @@ def call_to_chatgpt(content, task, model='gpt-3.5-turbo'):
         "role":
         "user",
         "content":
-        """extract people, dates, action items and important inforamtion from the following: [14:42, 12/08/2023] Omry Zuta: בעיה אחרת,
+        f"""you are doing it for {user_name}. extract people, dates, action items and important inforamtion from the following: [14:42, 12/08/2023] Omry Zuta: בעיה אחרת,
 ווואצאפ שוב שינו את הdom, יותר בעיה לשלוף את התאריך מכל הודעה..
 [14:42, 12/08/2023] Tomer: מההה
 [14:42, 12/08/2023] Tomer: לא מתאים להם
@@ -227,7 +231,7 @@ def call_to_chatgpt(content, task, model='gpt-3.5-turbo'):
         "role":
         "user",
         "content":
-        f"""extract title, people, date, action item and important inforamtion from the following:{str(content)}"]"""
+        f"""you are doing it for {user_name}. extract title, people, date, action item and important inforamtion from the following:{str(content)}"]"""
       }],
       temperature=0,
       max_tokens=1024,
@@ -244,15 +248,15 @@ def call_to_chatgpt(content, task, model='gpt-3.5-turbo'):
         "role":
         "user",
         "content":
-        "please provide the next message (up to 3 words) to this conversation in the same language:\n[20:30, 27/08/2023] אסתר היפה שלי: סיוט\n[21:00, 27/08/2023] Omry Zuta: אוי לולי\n[21:01, 27/08/2023] Omry Zuta: אצלנו הכל דבש\nהתעוררה, אכלה 100 וחזרה לישון\n[21:01, 27/08/2023] אסתר היפה שלי: מגזימן 😑"
+        f"you are doing it for {user_name}. please provide the next message (up to 3 words) to this conversation in the same language:\n[20:30, 27/08/2023] אסתר היפה שלי: סיוט\n[21:00, 27/08/2023] Omry Zuta: אוי לולי\n[21:01, 27/08/2023] Omry Zuta: אצלנו הכל דבש\nהתעוררה, אכלה 100 וחזרה לישון\n[21:01, 27/08/2023] אסתר היפה שלי: מגזימן 😑"
       }, {
         "role": "assistant",
-        "content": "לא נורמלי"
+        "content": "הכל בסדר"
       }, {
         "role":
         "user",
         "content":
-        "please provide the next message(up to 3 words)  to this conversation in the same language: [19:55, 27/08/2023] אורנה השפיצית: רוצים לקבוע ארוחת צהריים בוטקאמפית, בסימן \"שרדנו עוד אוגוסט\"?\n[20:02, 27/08/2023] Weaam Riskfield: בעד\n"
+        f"you are doing it for {user_name}. please provide the next message(up to 3 words)  to this conversation in the same language: [19:55, 27/08/2023] אורנה השפיצית: רוצים לקבוע ארוחת צהריים בוטקאמפית, בסימן \"שרדנו עוד אוגוסט\"?\n[20:02, 27/08/2023] Weaam Riskfield: בעד\n"
       }, {
         "role": "assistant",
         "content": "מצוין"
@@ -260,7 +264,7 @@ def call_to_chatgpt(content, task, model='gpt-3.5-turbo'):
         "role":
         "user",
         "content":
-        "please provide the next message (up to 3 words) to this conversation in the same language:[21:01, 24/08/2023] אורלי הקטנה: יש מתעניינת ראשונה לגבי הדירה בגדרה. \nמבקשת תמונות נוספות, ולדעת מה התשלום החודשי עבור ארנונה ו-ועד\n[21:03, 24/08/2023] אורלי הקטנה: היא תעביר את הנתונים במרוכז לבן שלה ואז יבדקו אם רלוונטי"
+        f"you are doing it for {user_name}. please provide the next message (up to 3 words) to this conversation in the same language:[21:01, 24/08/2023] אורלי הקטנה: יש מתעניינת ראשונה לגבי הדירה בגדרה. \nמבקשת תמונות נוספות, ולדעת מה התשלום החודשי עבור ארנונה ו-ועד\n[21:03, 24/08/2023] אורלי הקטנה: היא תעביר את הנתונים במרוכז לבן שלה ואז יבדקו אם רלוונטי"
       }, {
         "role": "assistant",
         "content": "תודה על המידע."
@@ -268,7 +272,7 @@ def call_to_chatgpt(content, task, model='gpt-3.5-turbo'):
         "role":
         "user",
         "content":
-        f"""please provide the next message (up to 3 words) to this conversation in the same language:{str(content)}"]"""
+        f"""you are doing it for {user_name}. please provide the next message (up to 3 words) to this conversation in the same language:{str(content)}"]"""
       }],
       temperature=1,
       max_tokens=256,

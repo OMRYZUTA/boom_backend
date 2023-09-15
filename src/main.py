@@ -18,6 +18,8 @@ from google.oauth2.service_account import Credentials
 from google.oauth2 import service_account
 import openai
 import tiktoken
+from fastapi.responses import PlainTextResponse
+
 origins = [
     "chrome-extension://bgbmjebdlkdjellaaignohicblifofje",
 ]
@@ -36,6 +38,55 @@ app.add_middleware(
 @app.get("/")
 async def root():
   return
+
+@app.get("/privacy_policy", response_class=PlainTextResponse)
+async def privacy_policy():
+  privacy_policy = """
+Effective Date:5/09/2023
+
+Thank you for choosing the BOOM! Chrome Extension (the "Extension"). We value your privacy and are committed to protecting your personal information. This Privacy Policy explains how the BOOM! Extension collects, uses, and protects your data. By using the Extension, you agree to the practices described in this Privacy Policy.
+
+1. Information We Collect
+
+The BOOM! Chrome Extension uses the ChatGPT model to summarize chats within your WhatsApp web interface. It does not collect or save any private or personal information from your chats. We do not have access to your WhatsApp messages, contacts, or any other private data.
+
+2. How We Use Your Information
+
+We do not save or use any of your private data. The Extension's primary function is to summarize chats within your WhatsApp web interface for your convenience. The summarized information is generated on open ai servers on your device and is not stored on our servers.
+
+3. Data Security
+
+We take your privacy and data security seriously. The BOOM! Extension does not store any data related to your chats or personal information. All processing and summarization of chats are performed on your open ai servers and do not involve the transmission of data to external servers.
+
+4. Third-Party Services
+
+except open ai servers, The BOOM! Extension does not integrate with any third-party services or collect data from external sources. It solely operates within the WhatsApp web interface to provide chat summaries.
+
+5. Cookies and Analytics
+
+The BOOM! Extension does not use cookies or analytics tools to track your online activities. It does not monitor your browsing habits or collect any information beyond its intended functionality.
+
+6. Children's Privacy
+
+The BOOM! Extension is not intended for use by children under the age of 13. We do not knowingly collect or store personal information from children.
+
+7. Updates and Changes
+
+We may update this Privacy Policy from time to time to reflect changes in our practices or for other operational, legal, or regulatory reasons. We encourage you to review this Privacy Policy periodically.
+
+8. Contact Us
+
+If you have any questions, concerns, or requests related to your privacy or this Privacy Policy, please contact us at the following email addresses:
+
+Tomerbenyehuda16@gmail.com
+Omryzuta@gmail.com
+By using the BOOM! Chrome Extension, you consent to the practices outlined in this Privacy Policy. Your continued use of the Extension signifies your acceptance of any changes to this policy.
+
+Last updated: 15/09/2023
+
+BOOM! Extensions Team
+"""
+  return privacy_policy
 
 
 class SummarizeRequest(BaseModel):

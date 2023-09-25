@@ -19,9 +19,12 @@ from google.oauth2 import service_account
 import openai
 import tiktoken
 from fastapi.responses import PlainTextResponse
+import uuid
+
 
 origins = [
     "chrome-extension://bgbmjebdlkdjellaaignohicblifofje",
+    "chrome-extension://dkppfddbpijanphelaigjfkdmmpfejai",
 ]
 
 
@@ -98,6 +101,8 @@ class SummarizeRequest(BaseModel):
 
 @app.post("/summarize")
 async def summarize(request: SummarizeRequest):
+  answer = ''
+
   try:
     messages = request.dict()["messages"]
     print(request.dict()) 
@@ -105,11 +110,10 @@ async def summarize(request: SummarizeRequest):
     user_mail = request.model_dump()["mail"]
     user_name = request.model_dump()["name"]
 
-    content = messages.replace('"', '\\"')
+    content = messages.replace('"', '\\"') if messages is not None else ""
     #if num_tokens_from_string > 800:
     # content = content[-2500:]
 
-    answer = ''
     if (summary_type == "meeting"):
       answer = call_to_chatgpt(user_name, content, summary_type)
       print(answer)
@@ -127,11 +131,17 @@ async def summarize(request: SummarizeRequest):
       print(answer)
     elif (summary_type == "suggestion"):
       print("in suggestion")
-      answer = call_to_chatgpt(user_name, content, summary_type)
+      # answer = call_to_chatgpt(user_name, content, summary_type)
+      answer = {"title": "Meeting Planning", "hour": "1410", "date": "20220914", "summary": "Planning a meeting with Omry."}
       print(answer)
 
     analytics(user_mail, summary_type, 'Success', answer)
-    return {"answer": answer, "summary_type": summary_type}
+    return {
+        "content": answer,
+        "summary_type": summary_type,
+        "id": str(uuid.uuid4()), 
+        "timestamp": datetime.utcnow().isoformat() 
+    }  
   except Exception as e:
     print(f"An error occurred: {e}")
     analytics(request.dict()["mail"], summary_type, str(e), answer)

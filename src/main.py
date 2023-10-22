@@ -117,9 +117,7 @@ async def summarize(request: SummarizeRequest):
     if (summary_type == "meeting"):
       answer = call_to_chatgpt(user_name, content, summary_type)
       print(answer)
-      #match = re.search(r'\{.*\}', answer, re.DOTALL)
-      #if match:
-
+      # answer = json.dumps({"title": "Meeting Planning", "hour": "1410", "date": "20220914", "summary": "Planning a meeting with Omry."}) # delete later
       response_dict = json.loads(answer)
 
       send_meeting_mail(user_mail, response_dict, summary_type)
@@ -131,16 +129,22 @@ async def summarize(request: SummarizeRequest):
       print(answer)
     elif (summary_type == "suggestion"):
       print("in suggestion")
-      # answer = call_to_chatgpt(user_name, content, summary_type)
-      answer = {"title": "Meeting Planning", "hour": "1410", "date": "20220914", "summary": "Planning a meeting with Omry."}
+      answer = call_to_chatgpt(user_name, content, summary_type)
+
       print(answer)
 
     analytics(user_mail, summary_type, 'Success', answer)
+    print ({
+        "content": answer,
+        "summary_type": summary_type,
+        "id": str(uuid.uuid4()), 
+        "timestamp": datetime.utcnow().isoformat() + "Z" 
+    }  )
     return {
         "content": answer,
         "summary_type": summary_type,
         "id": str(uuid.uuid4()), 
-        "timestamp": datetime.utcnow().isoformat() 
+        "timestamp": datetime.utcnow().isoformat()  + "Z"
     }  
   except Exception as e:
     print(f"An error occurred: {e}")
@@ -287,7 +291,7 @@ def call_to_chatgpt(user_name, content, task, model='gpt-3.5-turbo'):
         "role":
         "assistant",
         "content":
-        "{\"title\": \"Dom manipulation\",\"People\": \"Omry Zuta, Tomer\", \"hour\": \"14:43\", \"date\": \"12/08/2023\", \"summary\": \"Tomer and Omry raised their concerns regarding dom manipulation\", \"action_item\": \"investigate dom manipulation\"}"
+        "{\"title\": \"Dom manipulation\",\"people\": \"Omry Zuta, Tomer\", \"hour\": \"14:43\", \"date\": \"12/08/2023\", \"summary\": \"Tomer and Omry raised their concerns regarding dom manipulation\", \"action_item\": \"investigate dom manipulation\"}"
       }, {
         "role":
         "user",
@@ -362,7 +366,7 @@ def send_summary_mail(receiver, resposne_dict, summary_type):
 
   body = f"""\
     Title: {resposne_dict.get('title', '')}
-    People: {resposne_dict.get('People', '')}
+    People: {resposne_dict.get('people', '')}
     Dates: {resposne_dict.get('date', '')}
     Summary: {resposne_dict.get('summary', '')}
     Action Items: {resposne_dict.get('action_item', '')}"""

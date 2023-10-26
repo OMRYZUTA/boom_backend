@@ -20,16 +20,21 @@ import openai
 import tiktoken
 from fastapi.responses import PlainTextResponse
 import uuid
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 
 origins = [
     "chrome-extension://bgbmjebdlkdjellaaignohicblifofje",
     "chrome-extension://dkppfddbpijanphelaigjfkdmmpfejai",
+    "chrome-extension://ahedhabgadddclliengdcgilejjkklpf",
 ]
 
 
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -40,7 +45,12 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-  return
+    return FileResponse("static/index.html")
+
+
+@app.get("/home")
+async def serve_frontend():
+    return FileResponse("static/index.html")
 
 @app.get("/privacy_policy", response_class=PlainTextResponse)
 async def privacy_policy():
@@ -103,10 +113,13 @@ class SummarizeRequest(BaseModel):
 async def summarize(request: SummarizeRequest):
   answer = ''
 
-  try:
-    messages = request.dict()["messages"]
+  try: 
+    messages = request.model_dump()["messages"]
+    if(len(messages) > 1500):
+      messages = messages[-1500]
+    
     print(request.dict()) 
-    summary_type = request.dict()["summaryType"]
+    summary_type =request.model_dump()["summaryType"]
     user_mail = request.model_dump()["mail"]
     user_name = request.model_dump()["name"]
 
